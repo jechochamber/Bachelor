@@ -31,7 +31,8 @@ __pycache__
 ########
 *.txt
 *.csv
-
+.tmp
+/data
 # Default ignored files
 /shelf/
 /workspace.xml
