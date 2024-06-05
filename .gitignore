@@ -33,6 +33,7 @@ __pycache__
 *.csv
 .tmp
 /data
+/.ipynb_checkpoints
 # Default ignored files
 /shelf/
 /workspace.xml
