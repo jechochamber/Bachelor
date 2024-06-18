@@ -104,8 +104,8 @@ def uORFs(seqs):
 
     for index in range(len(frames["frame1"])):
         seq = frames["frame1"][index]
+        lengths = []
         for codon in range(len(seq)):
-            lengths = []
             if seq[codon] == "AUG":
                 uORF_length = 0
                 ouORF_bool = True
@@ -121,11 +121,13 @@ def uORFs(seqs):
                     counts.loc[index, "ouORF_countssum"] += 1
                     counts.loc[index, "ouORF_counts1"] += 1
                     break
+        if len(lengths) > 0:
+            counts.loc[index, "uORF_meanlength3"] = sum(lengths) / len(lengths)
 
     for index in range(len(frames["frame2"])):
         seq = frames["frame2"][index]
+        lengths = []
         for codon in range(len(seq)):
-            lengths = []
             if seq[codon] == "AUG":
                 uORF_length = 0
                 ouORF_bool = True
@@ -141,11 +143,13 @@ def uORFs(seqs):
                     counts.loc[index, "ouORF_countssum"] += 1
                     counts.loc[index, "ouORF_counts2"] += 1
                     break
+        if len(lengths) > 0:
+            counts.loc[index, "uORF_meanlength3"] = sum(lengths) / len(lengths)
 
     for index in range(len(frames["frame3"])):
         seq = frames["frame3"][index]
+        lengths = []
         for codon in range(len(seq)):
-            lengths = []
             if seq[codon] == "AUG":
                 uORF_length = 3
                 ouORF_bool = True
@@ -161,6 +165,8 @@ def uORFs(seqs):
                     counts.loc[index, "ouORF_countssum"] += 1
                     counts.loc[index, "ouORF_counts3"] += 1
                     break
+        if len(lengths)>0:
+            counts.loc[index, "uORF_meanlength3"] = sum(lengths) / len(lengths)
 
     '''Here we add the last columns to our DataFrame and clean it up for the final output'''
 
