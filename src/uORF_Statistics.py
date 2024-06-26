@@ -18,8 +18,7 @@ def codons(seqs):
         '''The algorithm here is similar to the one for a single sequence string.'''
         seqstrings = seqs["Sequence"].values
         for seqstring in seqstrings:
-            gnirtsqes = seqstring[
-                        ::-1]  # We reverse the sequence first to get our reading frames in relation to the CDS(frame 1 is the same reading frame as the CDS
+            gnirtsqes = seqstring[::-1]  # We reverse the sequence first to get our reading frames in relation to the CDS(frame 1 is the same reading frame as the CDS
             frame1, frame2, frame3 = [], [], []
 
             for i in range(len(gnirtsqes)):
@@ -75,108 +74,117 @@ def codons(seqs):
         codons['frame3'].append(frame3)
     return pd.DataFrame(codons)
 
+
 def uORFs(seqs):
-    """This Method takes a pandas Dataframe of sequences or a string
-     of one sequence outputs a pandas DataFrame countaining the number
-     of uORFs, ouORFs in each sequence and the mean length of uORFs per Sequence"""
     frames = codons(seqs)
-    counts = {
-        "uORF_countssum": list(np.zeros(len(frames))),
-        "ouORF_countssum": list(np.zeros(len(frames))),
+    template = {
+        "uORFs": list(np.zeros(len(frames))),
+        "ouORFs": list(np.zeros(len(frames))),
+        "mean_uORF_length": list(np.zeros(len(frames))),
 
-        "uORF_counts1": list(np.zeros(len(frames))),
-        "uORF_counts2": list(np.zeros(len(frames))),
-        "uORF_counts3": list(np.zeros(len(frames))),
+        "CUG_uORFs": list(np.zeros(len(frames))),
+        "CUG_ouORFs": list(np.zeros(len(frames))),
+        "mean_CUG_uORF_length": list(np.zeros(len(frames))),
 
-        "uORF_meanlength1": list(np.zeros(len(frames))),
-        "uORF_meanlength2": list(np.zeros(len(frames))),
-        "uORF_meanlength3": list(np.zeros(len(frames))),
-
-        "ouORF_counts1": list(np.zeros(len(frames))),
-        "ouORF_counts2": list(np.zeros(len(frames))),
-        "ouORF_counts3": list(np.zeros(len(frames))),
+        "GUG_uORFs": list(np.zeros(len(frames))),
+        "GUG_ouORFs": list(np.zeros(len(frames))),
+        "mean_GUG_uORF_length": list(np.zeros(len(frames))),
     }
-    counts = pd.DataFrame(counts)
-
-    '''We created the Dataframe in which we will store our data,
-    in the following code we iterate through the 3 different reading frames 
-    and search for start and stopcodons and depending on what we find, save our counts.'''
-
-    for index in range(len(frames["frame1"])):
-        seq = frames["frame1"][index]
-        lengths = []
-        for codon in range(len(seq)):
-            if seq[codon] == "AUG":
-                uORF_length = 0
-                ouORF_bool = True
-                for nextcodon in range(len(seq)):
-                    uORF_length += 3
-                    if seq[nextcodon] in src.constants.stopcodons:
-                        ouORF_bool = False
-                        counts.loc[index, "uORF_counts1"] += 1
-                        counts.loc[index, "uORF_countssum"] += 1
-                        lengths.append(uORF_length)
+    framedict = {}
+    for frame in range(3):
+        framedict[f"frame{frame + 1}"] = pd.DataFrame(template)
+        for index in range(len(frames[f"frame{frame + 1}"])):
+            seq = frames[f"frame{frame + 1}"][index]
+            lengths = []
+            CUG_lengths = []
+            GUG_lengths = []
+            for codon in range(len(seq)):
+                if seq[codon] == 'AUG':
+                    uORF_length = 0
+                    ouORF_bool = True
+                    for nextcodon in range(len(seq) - codon - 1):
+                        uORF_length += 3
+                        if seq[nextcodon + codon + 1] in src.constants.stopcodons:
+                            ouORF_bool = False
+                            framedict[f"frame{frame + 1}"].loc[index, "uORFs"] += 1
+                            lengths.append(uORF_length)
+                            break
+                    if ouORF_bool:
+                        framedict[f"frame{frame + 1}"].loc[index, "ouORFs"] += 1
                         break
-                if ouORF_bool:
-                    counts.loc[index, "ouORF_countssum"] += 1
-                    counts.loc[index, "ouORF_counts1"] += 1
-                    break
-        if len(lengths) > 0:
-            counts.loc[index, "uORF_meanlength3"] = sum(lengths) / len(lengths)
 
-    for index in range(len(frames["frame2"])):
-        seq = frames["frame2"][index]
-        lengths = []
-        for codon in range(len(seq)):
-            if seq[codon] == "AUG":
-                uORF_length = 0
-                ouORF_bool = True
-                for nextcodon in range(len(seq)):
-                    uORF_length += 3
-                    if seq[nextcodon] in src.constants.stopcodons:
-                        ouORF_bool = False
-                        counts.loc[index, "uORF_counts2"] += 1
-                        counts.loc[index, "uORF_countssum"] += 1
-                        lengths.append(uORF_length)
+                if seq[codon] == 'CUG':
+                    uORF_length = 0
+                    ouORF_bool = True
+                    for nextcodon in range(len(seq) - codon - 1):
+                        uORF_length += 3
+                        if seq[nextcodon + codon + 1] in src.constants.stopcodons:
+                            ouORF_bool = False
+                            framedict[f"frame{frame + 1}"].loc[index, "CUG_uORFs"] += 1
+                            CUG_lengths.append(uORF_length)
+                            break
+                    if ouORF_bool:
+                        framedict[f"frame{frame + 1}"].loc[index, "CUG_ouORFs"] += 1
                         break
-                if ouORF_bool:
-                    counts.loc[index, "ouORF_countssum"] += 1
-                    counts.loc[index, "ouORF_counts2"] += 1
-                    break
-        if len(lengths) > 0:
-            counts.loc[index, "uORF_meanlength3"] = sum(lengths) / len(lengths)
 
-    for index in range(len(frames["frame3"])):
-        seq = frames["frame3"][index]
-        lengths = []
-        for codon in range(len(seq)):
-            if seq[codon] == "AUG":
-                uORF_length = 3
-                ouORF_bool = True
-                for nextcodon in range(len(seq)):
-                    uORF_length += 3
-                    if seq[nextcodon] in src.constants.stopcodons:
-                        ouORF_bool = False
-                        counts.loc[index, "uORF_counts3"] += 1
-                        counts.loc[index, "uORF_countssum"] += 1
-                        lengths.append(uORF_length)
+                if seq[codon] == 'GUG':
+                    uORF_length = 0
+                    ouORF_bool = True
+                    for nextcodon in range(len(seq) - codon - 1):
+                        uORF_length += 3
+                        if seq[nextcodon + codon + 1] in src.constants.stopcodons:
+                            ouORF_bool = False
+                            framedict[f"frame{frame + 1}"].loc[index, "GUG_uORFs"] += 1
+                            GUG_lengths.append(uORF_length)
+                            break
+                    if ouORF_bool:
+                        framedict[f"frame{frame + 1}"].loc[index, "GUG_ouORFs"] += 1
                         break
-                if ouORF_bool:
-                    counts.loc[index, "ouORF_countssum"] += 1
-                    counts.loc[index, "ouORF_counts3"] += 1
-                    break
-        if len(lengths)>0:
-            counts.loc[index, "uORF_meanlength3"] = sum(lengths) / len(lengths)
 
-    '''Here we add the last columns to our DataFrame and clean it up for the final output'''
+            if len(lengths) > 0:
+                framedict[f"frame{frame + 1}"].loc[index, "mean_uORF_length"] = sum(lengths) / len(lengths)
 
-    counts.iloc[:, 2:] = counts.iloc[:, 2:].replace(0, np.nan)
-    counts["uORF_meanlength"] = counts.loc[:, ["uORF_meanlength1", "uORF_meanlength2", "uORF_meanlength3"]].mean(
-        axis=1)
+            if len(CUG_lengths) > 0:
+                framedict[f"frame{frame + 1}"].loc[index, "mean_CUG_uORF_length"] = sum(CUG_lengths) / len(CUG_lengths)
+            if len(GUG_lengths) > 0:
+                framedict[f"frame{frame + 1}"].loc[index, "mean_GUG_uORF_length"] = sum(GUG_lengths) / len(GUG_lengths)
+
+    counts = pd.DataFrame()
+
+    for key in framedict:
+        for column in framedict[key].columns:
+            counts[f"{key}_{column}"] = framedict[key].loc[:, column]
+
+    counts["uORFs"] = counts["frame1_uORFs"] + counts["frame2_uORFs"] + counts["frame3_uORFs"]
+    counts["CUG_uORFs"] = counts["frame1_CUG_uORFs"] + counts["frame2_CUG_uORFs"] + counts["frame3_CUG_uORFs"]
+    counts["GUG_uORFs"] = counts["frame1_GUG_uORFs"] + counts["frame2_GUG_uORFs"] + counts["frame3_GUG_uORFs"]
+    counts["ouORFs"] = counts["frame1_ouORFs"] + counts["frame2_ouORFs"] + counts["frame3_ouORFs"]
+    counts["CUG_ouORFs"] = counts["frame1_CUG_ouORFs"] + counts["frame2_CUG_ouORFs"] + counts["frame3_CUG_ouORFs"]
+    counts["GUG_ouORFs"] = counts["frame1_GUG_ouORFs"] + counts["frame2_GUG_ouORFs"] + counts["frame3_CUG_ouORFs"]
+    counts["all uORFs"] = counts["uORFs"] + counts["CUG_uORFs"] + counts["GUG_uORFs"]
+    counts["all ouORFs"] = counts["ouORFs"] + counts["CUG_ouORFs"] + counts["GUG_ouORFs"]
+
+    counts = counts.replace(0, np.nan)
+    counts["mean_uORF_length"] = counts.loc[:, ["frame1_mean_uORF_length", "frame2_mean_uORF_length",
+                                                "frame3_mean_uORF_length"]].mean(axis=1)
+    counts["mean_CUG_uORF_length"] = counts.loc[:, ["frame1_mean_CUG_uORF_length", "frame2_mean_CUG_uORF_length",
+                                                    "frame3_mean_CUG_uORF_length"]].mean(axis=1)
+    counts["mean_GUG_uORF_length"] = counts.loc[:, ["frame1_mean_GUG_uORF_length", "frame2_mean_GUG_uORF_length",
+                                                    "frame3_mean_GUG_uORF_length"]].mean(axis=1)
+    counts["all mean lengths"] = counts.loc[:,
+                                 ["mean_uORF_length", "mean_CUG_uORF_length", "mean_GUG_uORF_length"]].mean(axis=1)
     counts = counts.replace(np.nan, 0)
-    cols_in_front = ["uORF_countssum", "uORF_meanlength", "ouORF_countssum"]
-    counts = counts.loc[:,[c for c in cols_in_front if c in counts.columns] + [c for c in counts if c not in cols_in_front]]
-    counts.insert(loc=0,column='SeqID',value=seqs.index)
-    counts.set_index('SeqID', inplace=True)
+
+    cols_in_front = ["all uORFs", "all ouORFs", "all mean lengths", "uORFs", "CUG_uORFs", "GUG_uORFs", "ouORFs",
+                     "CUG_ouORFs", "GUG_ouORFs", "mean_uORF_length", "mean_CUG_uORF_length", "mean_GUG_uORF_length"]
+    counts = counts.loc[:,
+             [c for c in cols_in_front if c in counts.columns] + [c for c in counts if c not in cols_in_front]]
+
+    if type(seqs) == pd.core.frame.DataFrame:
+        counts.insert(loc=0, column='SeqID', value=seqs.index)
+        counts.set_index('SeqID', inplace=True)
 
     return counts
+
+def GC_dinucleotides(seqs):
+    pass
