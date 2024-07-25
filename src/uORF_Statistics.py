@@ -139,22 +139,23 @@ def uORFs(seqs, startcodon):
     return counts
 
 
-def counts_concat_all(seqs, AUG_counts, CUG_counts, GUG_counts):
+def counts_concat_all(seqs, AUG_counts, CUG_counts, GUG_counts, UUG_counts,ACG_counts):
     """this function summarizes all of the count matrices created with the previous function"""
     counts = pd.DataFrame()
-    countdict = {"AUG": AUG_counts, "CUG": CUG_counts, "GUG": GUG_counts}
+    countdict = {"AUG": AUG_counts, "CUG": CUG_counts, "GUG": GUG_counts,"UUG": UUG_counts,"ACG": ACG_counts}
     for key in countdict:
         for column in countdict[key].columns:
             counts[f"{key}_{column}"] = countdict[key].loc[:, column]
-    counts["all uORFs"] = counts["AUG_uORFs"] + counts["CUG_uORFs"] + counts["GUG_uORFs"]
-    counts["all ouORFs"]=counts["AUG_ouORFs"] + counts["CUG_ouORFs"] + counts["GUG_ouORFs"]
+
+    counts["all uORFs"] = counts["AUG_uORFs"] + counts["CUG_uORFs"] + counts["GUG_uORFs"]+ counts["UUG_uORFs"] + counts["ACG_uORFs"]
+    counts["all ouORFs"]=counts["AUG_ouORFs"] + counts["CUG_ouORFs"] + counts["GUG_ouORFs"]+ counts["UUG_ouORFs"] + counts["ACG_ouORFs"]
     counts = counts.replace(0, np.nan)
-    counts["all mean uORF lengths"] = counts.loc[:, ["AUG_mean_uORF_length", "CUG_mean_uORF_length","GUG_mean_uORF_length"]].mean(axis=1)
-    counts["all max uORF lengths"] = counts.loc[:, ["AUG_max_uORF_length", "CUG_max_uORF_length","GUG_max_uORF_length"]].max(axis=1)
+    counts["all mean uORF lengths"] = counts.loc[:, ["AUG_mean_uORF_length", "CUG_mean_uORF_length","GUG_mean_uORF_length","UUG_mean_uORF_length","ACG_mean_uORF_length"]].mean(axis=1)
+    counts["all max uORF lengths"] = counts.loc[:, ["AUG_max_uORF_length", "CUG_max_uORF_length","GUG_max_uORF_length","UUG_max_uORF_length","ACG_max_uORF_length"]].max(axis=1)
     counts = counts.replace(np.nan, 0)
     cols_in_front = ["all uORFs", "all ouORFs", "all mean uORF lengths", "all max uORF lengths", "AUG_uORFs", "CUG_uORFs",
-                     "GUG_uORFs", "AUG_ouORFs", "CUG_ouORFs", "GUG_ouORFs", "AUG_mean_uORF_length", "CUG_mean_uORF_length",
-                     "AUG_mean_uORF_length", "AUG_max_uORF_length", "CUG_max_uORF_length", "GUG_max_uORF_length"]
+                     "GUG_uORFs","UUG_uORFs", "ACG_uORFs" , "AUG_ouORFs", "CUG_ouORFs", "GUG_ouORFs","UUG_ouORFs","ACG_ouORFs", "AUG_mean_uORF_length", "CUG_mean_uORF_length",
+                     "GUG_mean_uORF_length","UUG_mean_uORF_length","ACG_mean_uORF_length", "AUG_max_uORF_length", "CUG_max_uORF_length", "GUG_max_uORF_length","UUG_max_uORF_length", "ACG_max_uORF_length"]
     counts = counts.loc[:,
              [c for c in cols_in_front if c in counts.columns] + [c for c in counts if c not in cols_in_front]]
 
