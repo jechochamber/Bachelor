@@ -139,7 +139,7 @@ def uORFs(seqs, startcodon):
     return counts
 
 
-def counts_concat_all(seqs, AUG_counts, CUG_counts, GUG_counts, UUG_counts,ACG_counts):
+def counts_concat_all(seqs, AUG_counts, CUG_counts, GUG_counts, UUG_counts, ACG_counts):
     """this function summarizes all of the count matrices created with the previous function"""
     counts = pd.DataFrame()
     countdict = {"AUG": AUG_counts, "CUG": CUG_counts, "GUG": GUG_counts,"UUG": UUG_counts,"ACG": ACG_counts}
@@ -165,9 +165,78 @@ def counts_concat_all(seqs, AUG_counts, CUG_counts, GUG_counts, UUG_counts,ACG_c
     return counts
 
 def GC_dinucleotides(seqs):
-    """WIP"""
-    pass
+    """counts the number and lengths of GC/CG chains in Sequences"""
+    gcchains_df=pd.DataFrame({"SeqID":list(seqs.index),
+                              "longest gcchain":np.zeros(len(seqs)),
+                              "average gcchain":np.zeros(len(seqs)),
+                              "ratio gc to seq":np.zeros(len(seqs))})
 
+    for ind in seqs.index:
+        pool = ['G', 'C']
+        combo = 1
+        gcchains = []
+        seq= seqs['Sequence'][ind]
+        for i in range(len(seq)):
+            if seq[i] in pool:
+                if seq[i - 1] in pool and seq[i - 1] != seq[i]:
+                    combo += 1
+                else:
+                    combo = 1
+            else:
+                combo = 1
+            if combo > 1:
+                if len(gcchains) > 0 and gcchains[-1][0] == i + 2 - combo:
+                    del gcchains[-1]
+                gcchains.append((i + 2 - combo, combo))
+        gcchains_df.loc[ind,"longest gcchain"] = max(list(zip(*gcchains))[1])
+        gcchains_df.loc[ind,"average gcchain"] = sum(list(zip(*gcchains))[1])/len(gcchains[1])
+        gcchains_df.loc[ind,"ratio gc to seq"] = sum(list(zip(*gcchains))[1])/len(seq)
+    return pd.DataFrame(gcchains_df)
+#this may need some reworking
+
+
+def GC_Content(seq):
+    """Calculates the GC content of a DNA or RNA sequence"""
+    return (seq.count('G')+seq.count('C'))/len(seq)
+
+
+def local_GC_Content(seqs,binnum=10):
+    if type(seqs)==pd.DataFrame:
+        local_gc_df={"SeqID":seqs.index,"local GC Content":[]}
+        for seq in seqs['Sequence']:
+            bins=[]
+            quotient, remainder = divmod(len(seq), binnum)
+            binints = [quotient + 1] * remainder + [quotient] * (binnum - remainder)
+            start=0
+            for i in binints:
+                bins.append(seq[start:start+i])
+                start += i
+            gcs=[]
+            for seq in bins:
+                gc_seq = GC_Content(seq)
+                gcs.append(gc_seq)
+            local_gc_df["local GC Content"].append(gcs)
+        return pd.DataFrame(local_gc_df)
+
+
+    elif type(seqs)==str:
+
+        bins = []
+        quotient, remainder = divmod(len(seqs), binnum)
+        binints = [quotient + 1] * remainder + [quotient] * (binnum - remainder)
+        start = 0
+        gcs = []
+        for i in binints:
+            bins.append(seqs[start:start + i])
+            start += i
+            for seq in bins:
+                gc_seq = GC_Content(seq)
+                gcs.append(gc_seq)
+
+        return gcs
+
+    else:
+        raise TypeError("seqs must be a string or a dataframe")
 
 def fast_uORfs(seqs, startcodon):
     """This function is still WIP and is not faster(yet)"""
@@ -245,4 +314,34 @@ def fast_uORfs(seqs, startcodon):
         axis=1)
 
     return counts
+
+def markov_matrix(seqs):
+    tot_length=0
+    for seq in seqs["Sequence"]:
+        tot_length += len(seq)
+
+    P_single={}
+    for base in src.constants.RNABASES:
+        counter=0
+        for seq in seqs["Sequence"]:
+            counter+=seq.count(base)
+        P_single[base]=counter/tot_length
+
+    P_duplett={}
+    markov_matrix = np.zeros([4, 4])
+    i,j=0,0
+    for base1 in src.constants.RNABASES:
+        for base2 in src.constants.RNABASES:
+            counter=0
+            for seq in seqs['Sequence']:
+                counter=seq.count(base1+base2)
+            P_duplett[base1+base2]=counter/tot_length
+            markov_matrix[i,j]=P_duplett[base1+base2]/P_single[base1]
+            j += 1
+        i += 1
+    return markov_matrix
+
+
+
+
 
