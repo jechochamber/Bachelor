@@ -5,7 +5,7 @@ from Bio import SeqIO
 
 """This module contains functions to read and tweak human sequences."""
 
-def readFASTA(filename, BASES=src.constants.DNABASES):
+def readFASTA(filename,groupname, BASES=src.constants.DNABASES):
     """We read FASTA file and return a numpy array of the sequences."""
     seqs = []
     seqIDs = []
@@ -13,8 +13,8 @@ def readFASTA(filename, BASES=src.constants.DNABASES):
         seqs.append(str(seq_record.seq))
         seqIDs.append(seq_record.id)
     seqs = np.vstack((np.array(seqIDs), np.array(seqs))).T
-    humangroup = np.array([['Human'] * len(seqs)])
-    seqs = np.concatenate((seqs, humangroup.T), axis=1)
+    group = np.array([[groupname] * len(seqs)])
+    seqs = np.concatenate((seqs, group.T), axis=1)
     if BASES == src.constants.DNABASES:
         for i in range(len(seqs)):
             seqs[i, 1] = seqs[i, 1].replace('T', 'U')
