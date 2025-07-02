@@ -83,7 +83,7 @@ net.to(device)
 
 criterion = nn.MSELoss()  # (aL-y)^2
 optimizer = optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999))  # epsilon ist standradmäßig bei 1e-8
-
+scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=5, factor=0.5)
 
 def train_one_epoch(epoch):
     net.train(True)
@@ -114,6 +114,7 @@ def train_one_epoch(epoch):
                 val_running_loss += val_loss.item()
             val_plot.append(val_running_loss/len(valloader))
             val_batch_plot.append(batch_index+1)
+            scheduler.step(val_running_loss / len(valloader))
             val_running_loss = 0.0
 
 
