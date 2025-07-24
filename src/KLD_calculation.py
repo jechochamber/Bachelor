@@ -2,6 +2,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import sys
+import pickle
+import time
 
 sys.path.append("..")
 
@@ -16,7 +18,7 @@ def substringcount(ini_str: str, sub_str: str) -> int:
     return res
 
 
-def markov_matrix(seqs: pd.DataFrame | str,seq_column : str,a : int|float = 0) -> tuple[dict, dict, np.ndarray]:
+def markov_matrix(seqs: pd.DataFrame | str,seq_column : str = None,a : int|float = 0) -> tuple[dict, dict, np.ndarray]:
     tot_length = 0
     if type(seqs) == pd.DataFrame:
         for seq in seqs[seq_column]:
@@ -33,6 +35,7 @@ def markov_matrix(seqs: pd.DataFrame | str,seq_column : str,a : int|float = 0) -
                 counter += seq.count(base)
             P_single[base] = counter / tot_length
         tot_length -= len(seqs)  #prep for coming calculations, reasoning expanded upon in paper/thesis
+
     if type(seqs) == str:
         for base in BASES:
             counter = seqs.count(base)
@@ -49,7 +52,7 @@ def markov_matrix(seqs: pd.DataFrame | str,seq_column : str,a : int|float = 0) -
                 counter = 0
                 for seq in seqs[seq_column]:
                     counter += substringcount(seq, base1 + base2)
-                P_duplett[base1 + base2] = (counter+a) / (tot_length+a*16)
+                P_duplett[base1 + base2] = counter / tot_length
                 markov_matrix[i, j] = P_duplett[base1 + base2] / P_single[base1]
                 i += 1
             j += 1
@@ -57,11 +60,10 @@ def markov_matrix(seqs: pd.DataFrame | str,seq_column : str,a : int|float = 0) -
     if type(seqs) == str:
         for base1 in BASES:
             for base2 in BASES:
-                P_duplett[base1 + base2] = substringcount(seqs, base1 + base2) / tot_length
+                P_duplett[base1 + base2] = (substringcount(seqs, base1 + base2) +a) / (tot_length+a*16)
                 if P_single[base1] > 0:
                     markov_matrix[i, j] = P_duplett[base1 + base2] / P_single[base1]
-                else:
-                    markov_matrix[i, j] = 0
+
                 i += 1
             j += 1
             i = 0
@@ -71,29 +73,50 @@ def markov_matrix(seqs: pd.DataFrame | str,seq_column : str,a : int|float = 0) -
         for j in range(len(markov_matrix.T[0])):
             if sum_col > 0:
                 markov_matrix[j, i] = markov_matrix[j, i] / sum_col
-    sanitycheck=[]
-    for i in markov_matrix.T:
-        sanitycheck.append(i.sum())
-    #print(sanitycheck)
+
     return P_duplett, P_single, markov_matrix
 
 
 # P(X|Nukleotid) →
 # P(Nukleotid) ↓
 
-def kld(matrix1: np.ndarray, matrix2: np.ndarray) -> float:
-    dist1=matrix1.T.flatten()
-    dist2 =  matrix2.T.flatten()
+def kld(p_matrix: np.ndarray | float, q_matrix: np.ndarray | float) -> float:
+    p_data=p_matrix.T.flatten()
+    q_data =  q_matrix.T.flatten()
     kld=0
-    for i,j in zip(dist1, dist2):
-        if i==0 or j==0:
+    for p,q in zip(p_data, q_data):
+        if p==0 or q==0:
             kld+=0
         else:
-            kld+=i*np.log(i/j)  #Add pseudocounts!!!!(+normalize)
-                                #how to test pseudocounts?
+            kld+=p*np.log(p/q)
     return kld
+def jsd(p_matrix: np.ndarray, q_matrix: np.ndarray) -> float:
+    p_data=p_matrix.T.flatten()
+    q_data = q_matrix.T.flatten()
+    jsd=0
+    i=0
+    for p,q in zip(p_data, q_data):
+        i+=1
+        if p==0 or q==0:
+            jsd+=0
+        else:
+            m=0.5*(p+q)
+            D=lambda a,b : a*np.log(a/b)#kld as a lambda function, to not overwrite the kld function that already exists
+            jsd+=0.5*D(p,m)+0.5*D(q,m)
 
-def main_loop(reference_data : pd.DataFrame,p_data : pd.DataFrame ,reference_seq_column : str,p_seq_column : str,a : int|float =0) -> list:
+    return np.sqrt(jsd)
+
+
+def jsd_loop(p_data, p_seq_column, q_matrix, a=1):
+    jsd_list = []
+
+    for seq in p_data[p_seq_column]:
+        p_matrix = markov_matrix(seq, a=a)[2]
+        jsd_list.append(jsd(p_matrix, q_matrix))
+    return jsd_list
+
+
+def main_loop(reference_data : pd.DataFrame,q_data : pd.DataFrame ,reference_seq_column : str,q_seq_column : str,a : int|float =0) -> list:
     """
     This loop calculates the Kullback-Leibner divergence between single Sequences(p_data) and reference sequence dataset(reference_data)
     The seq_header parameter is the name of column in which the sequence string is saved
@@ -102,28 +125,56 @@ def main_loop(reference_data : pd.DataFrame,p_data : pd.DataFrame ,reference_seq
     print(reference_matrix)
     kldlist = []
 
-    for seq in p_data[p_seq_column]:
+    for seq in q_data[q_seq_column]:
 
-        seq_matrix = markov_matrix(seq,p_seq_column,a=a)[2]
+        seq_matrix = markov_matrix(seq,q_seq_column,a=a)[2]
         kldlist.append(kld(reference_matrix,seq_matrix))
 
 
 
     return kldlist
 
+def distance_calculation(reference_data : pd.DataFrame,q_data : pd.DataFrame ,reference_seq_column : str,q_seq_column : str,seqnum) -> tuple:
+    reference_seqs=np.random.choice(np.array(reference_data[reference_seq_column]),seqnum)
+    q_seqs=np.array(q_data[q_seq_column])
+    human_dist=[]
+    for seq in reference_seqs:
+        for second_seq in reference_seqs:
+            human_dist.append(jsd(markov_matrix(seq)[2],markov_matrix(second_seq)[2]))
+    list_of_dists=[]
+    for seq in q_seqs:
+        random_dist = []
+        for second_seq in reference_seqs:
+            random_dist.append(jsd(markov_matrix(seq,a=1)[2],markov_matrix(second_seq,a=1)[2]))
+        list_of_dists.append(random_dist)
+    return human_dist,list_of_dists
 
 
-reference_data = pd.read_csv("../data/new_dataset.csv")
-reference_seqs = reference_data.loc[reference_data['Group'] == 'Human']
-p_data = pd.read_csv("../data/random_train_pc.csv")
-for i in p_data.index:
-    p_data.loc[i, 'utr'] = p_data.loc[i, 'utr'].replace('T', 'U')
-
-#print(p_data.head())
-
-p_data["KLD2"]=main_loop(reference_seqs,p_data,"Sequence","utr",a=2)
-print(p_data["KLD2"])
-p_data.to_csv("../data/random_train_pc.csv",index=False)
 
 
-#possible name for cutoff function: "kld sampling" oder "dataloader"
+
+'''
+
+reference_seqs = pd.read_csv("../data/human_train.csv")
+
+for i in reference_seqs.index:
+    reference_seqs.loc[i, 'utr'] = reference_seqs.loc[i, 'utr'].replace('T', 'U')
+a=1
+
+jsd_list=[]
+
+for seq in reference_seqs["utr"]:
+    p_matrix = markov_matrix(seq, a=a)[2]
+    jsd_list.append(p_matrix[0][0])
+
+
+pickle.dump(jsd_list, open("../data/human_jsd.pkl", "wb"))
+jsd_arr=np.array(jsd_list)
+np.save("../data/human_jsd.npy", jsd_arr)
+print("done")
+'''
+reference_data=pd.read_csv("../data/human_sample.csv")
+q_data=pd.read_csv("../data/random_train.csv")
+results=distance_calculation(reference_data,q_data,'utr','utr',100)
+
+pickle.dump(results, open("../data/human_distance.pkl", "wb"))
