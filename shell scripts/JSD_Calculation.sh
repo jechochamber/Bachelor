@@ -18,5 +18,5 @@ source ~/.bashrc
 
 # activate desired conda environment
 conda activate testenv
-cd '/fast/AG_Ohler/jdemoli/bachelorgit/src'
-python3 KLD_calculation.py
+cd '/fast/AG_Ohler/jdemoli/bachelorgit/shell scripts'
+python3 JSD_calculation.py

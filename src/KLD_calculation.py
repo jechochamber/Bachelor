@@ -19,6 +19,7 @@ def substringcount(ini_str: str, sub_str: str) -> int:
 
 
 def markov_matrix(seqs: pd.DataFrame | str,seq_column : str = None,a : int|float = 0) -> tuple[dict, dict, np.ndarray]:
+    """This function is rewritten here to be more functional in further loops"""
     tot_length = 0
     if type(seqs) == pd.DataFrame:
         for seq in seqs[seq_column]:
@@ -81,6 +82,7 @@ def markov_matrix(seqs: pd.DataFrame | str,seq_column : str = None,a : int|float
 # P(Nukleotid) ↓
 
 def kld(p_matrix: np.ndarray | float, q_matrix: np.ndarray | float) -> float:
+    """Returns Kullback-Leibler-distance between two matrices"""
     p_data=p_matrix.T.flatten()
     q_data =  q_matrix.T.flatten()
     kld=0
@@ -91,6 +93,7 @@ def kld(p_matrix: np.ndarray | float, q_matrix: np.ndarray | float) -> float:
             kld+=p*np.log(p/q)
     return kld
 def jsd(p_matrix: np.ndarray, q_matrix: np.ndarray) -> float:
+    """Returns Jensen-Shannon-distance between two matrices"""
     p_data=p_matrix.T.flatten()
     q_data = q_matrix.T.flatten()
     jsd=0
@@ -112,6 +115,7 @@ def jsd(p_matrix: np.ndarray, q_matrix: np.ndarray) -> float:
 
 
 def jsd_loop(p_data, p_seq_column, q_matrix, a=1):
+    """loop to calculate all JSDs for a dataset"""
     jsd_list = []
 
     for seq in p_data[p_seq_column]:
@@ -141,6 +145,7 @@ def main_loop(reference_data : pd.DataFrame,q_data : pd.DataFrame ,reference_seq
 
 #WIP
 def distance_calculation(reference_data : pd.DataFrame,q_data : pd.DataFrame ,reference_seq_column : str,q_seq_column : str,seqnum) -> tuple:
+    """Function specified in the thesis to calculate a more accurate distance between sequences"""
     reference_seqs=np.random.choice(np.array(reference_data[reference_seq_column]),seqnum)
     q_seqs=np.array(q_data[q_seq_column])
     human_dist=[]
@@ -156,34 +161,3 @@ def distance_calculation(reference_data : pd.DataFrame,q_data : pd.DataFrame ,re
 
         list_of_dists.append(random_dist)
     return human_dist,list_of_dists
-
-
-
-
-
-'''
-
-reference_seqs = pd.read_csv("../data/human_train.csv")
-
-for i in reference_seqs.index:
-    reference_seqs.loc[i, 'utr'] = reference_seqs.loc[i, 'utr'].replace('T', 'U')
-a=1
-
-jsd_list=[]
-
-for seq in reference_seqs["utr"]:
-    p_matrix = markov_matrix(seq, a=a)[2]
-    jsd_list.append(p_matrix[0][0])
-
-
-pickle.dump(jsd_list, open("../data/human_jsd.pkl", "wb"))
-jsd_arr=np.array(jsd_list)
-np.save("../data/human_jsd.npy", jsd_arr)
-print("done")
-
-reference_data=pd.read_csv("../data/human_sample.csv")
-q_data=pd.read_csv("../data/random_train.csv")
-results=distance_calculation(reference_data,q_data,'utr','utr',50)
-
-pickle.dump(results, open("../data/human_distance.pkl", "wb"))
-'''

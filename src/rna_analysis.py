@@ -6,18 +6,7 @@ import ViennaRNA as vrna
 """This module contains functions to calculate different statistics of uORFs in RNA sequences."""
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
+    """Call in a loop to create terminal progress bar"""
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '-' * (length - filledLength)
@@ -219,6 +208,7 @@ def GC_Content(seq):
     return (seq.count('G')+seq.count('C'))/len(seq)
 
 def local_GC_Content(seqs,binnum=10):
+    """Splits sequence into bins to analyse local gc Content"""
     if type(seqs)==pd.DataFrame:
         local_gc_df={"SeqID":seqs.index,"Group":seqs["Group"],"local GC Content":[]}
         for seq in seqs['Sequence']:
@@ -256,6 +246,102 @@ def local_GC_Content(seqs,binnum=10):
     else:
         raise TypeError("seqs must be a string or a dataframe")
 
+
+
+def substringcount(ini_str,sub_str):
+    """We have to write this function ourselves because the.count() method for the markov_matrix function because alot of edge cases are not counted"""
+    res = sum([1 for i in range(len(ini_str)-len(sub_str)+1) if ini_str[i:i+len(sub_str)] == sub_str])
+
+    return res
+
+def kl(dist1,dist2):
+    """Returns Kullback-Leibler-distance between two distributions"""
+    kl=dist1*np.log(dist1/dist2)
+    return kl.sum()
+
+def markov_matrix(seqs):
+    """Generates markov matrix from sequence"""
+    tot_length = 0
+    for seq in seqs["Sequence"]:
+        tot_length += len(seq)
+
+    P_single = {}
+    for base in src.constants.RNABASES:
+        counter = 0
+        for seq in seqs["Sequence"]:
+            counter += seq.count(base)
+
+        P_single[base] = counter / tot_length
+    tot_length -= len(seqs)
+    P_duplett = {}
+    markov_matrix = np.zeros([4, 4])
+    i, j = 0, 0
+    tot_count = 0
+    for base1 in src.constants.RNABASES:
+        for base2 in src.constants.RNABASES:
+            counter = 0
+            for seq in seqs['Sequence']:
+                counter += substringcount(seq, base1 + base2)
+            tot_count += counter
+
+            P_duplett[base1 + base2] = counter / tot_length
+            markov_matrix[i, j] = P_duplett[base1 + base2] / P_single[base1]
+
+            i += 1
+        j += 1
+        i = 0
+    for i in range(len(markov_matrix.T)):
+        sum_col = sum(markov_matrix.T[i, :])
+        for j in range(len(markov_matrix.T[0])):
+            markov_matrix[j, i] = markov_matrix[j, i] / sum_col
+
+    return P_duplett, P_single, markov_matrix
+
+def get_windows(seq, window_size=100, stride=50):
+    """split sequence into windows for sliding window algorithm"""
+    seq_string = str(seq)
+    #seq_string = seq_string.replace('T', 'U')
+
+    windows = []
+    start = 0
+    end = window_size
+
+    if len(seq_string) <= window_size:
+        return [seq_string]
+
+    while end <= len(seq_string):
+        windows.append(seq_string[start:end])
+        start += stride
+        end += stride
+    windows.append(seq_string[len(seq_string)-window_size:len(seq_string)])
+
+    return windows
+
+def sliding_window_mfe(seqs):
+    """Calculate the minimum free energy using the sliding window algorithm"""
+    x = 0
+    mfes=[]
+    l=len(seqs["Sequence"])
+    printProgressBar(0, l, prefix='Progress:', suffix='Complete', length=50)
+    for fputr in seqs['Sequence']:
+        x += 1
+        wins = get_windows(fputr)
+
+
+        lowest_mfe = float('inf')
+
+        for win in wins:
+            string = str(win)
+            (ss, mfe) = vrna.fold(string)
+            mfe = mfe / len(string)
+            if mfe < lowest_mfe:
+                lowest_mfe = mfe
+
+        printProgressBar(x+1, l, prefix='Progress:', suffix='Complete', length=50)
+        mfes.append(lowest_mfe)
+    return mfes
+
+#WIP
 def fast_uORfs(seqs, startcodon):
     """This function is still WIP and is not faster(yet)"""
     seq_pos = {"frame1": [], "frame2": [], "frame3": []}
@@ -332,97 +418,6 @@ def fast_uORfs(seqs, startcodon):
         axis=1)
 
     return counts
-
-def substringcount(ini_str,sub_str):
-    """We have to write this function ourselves because the.count() method for the markov_matrix function because alot of edge cases are not counted"""
-    res = sum([1 for i in range(len(ini_str)-len(sub_str)+1) if ini_str[i:i+len(sub_str)] == sub_str])
-
-    return res
-
-def kl(dist1,dist2):
-    kl=dist1*np.log(dist1/dist2)
-    return kl.sum()
-
-def markov_matrix(seqs):
-    tot_length = 0
-    for seq in seqs["Sequence"]:
-        tot_length += len(seq)
-
-    P_single = {}
-    for base in src.constants.RNABASES:
-        counter = 0
-        for seq in seqs["Sequence"]:
-            counter += seq.count(base)
-
-        P_single[base] = counter / tot_length
-    tot_length -= len(seqs)
-    P_duplett = {}
-    markov_matrix = np.zeros([4, 4])
-    i, j = 0, 0
-    tot_count = 0
-    for base1 in src.constants.RNABASES:
-        for base2 in src.constants.RNABASES:
-            counter = 0
-            for seq in seqs['Sequence']:
-                counter += substringcount(seq, base1 + base2)
-            tot_count += counter
-
-            P_duplett[base1 + base2] = counter / tot_length
-            markov_matrix[i, j] = P_duplett[base1 + base2] / P_single[base1]
-
-            i += 1
-        j += 1
-        i = 0
-    for i in range(len(markov_matrix.T)):
-        sum_col = sum(markov_matrix.T[i, :])
-        for j in range(len(markov_matrix.T[0])):
-            markov_matrix[j, i] = markov_matrix[j, i] / sum_col
-
-    return P_duplett, P_single, markov_matrix
-
-def get_windows(seq, window_size=100, stride=50):
-    seq_string = str(seq)
-    #seq_string = seq_string.replace('T', 'U')
-
-    windows = []
-    start = 0
-    end = window_size
-
-    if len(seq_string) <= window_size:
-        return [seq_string]
-
-    while end <= len(seq_string):
-        windows.append(seq_string[start:end])
-        start += stride
-        end += stride
-    windows.append(seq_string[len(seq_string)-window_size:len(seq_string)])
-
-    return windows
-
-def sliding_window_mfe(seqs):
-    x = 0
-    mfes=[]
-    l=len(seqs["Sequence"])
-    printProgressBar(0, l, prefix='Progress:', suffix='Complete', length=50)
-    for fputr in seqs['Sequence']:
-        x += 1
-        wins = get_windows(fputr)
-
-
-        lowest_mfe = float('inf')
-
-        for win in wins:
-            string = str(win)
-            (ss, mfe) = vrna.fold(string)
-            mfe = mfe / len(string)
-            if mfe < lowest_mfe:
-                lowest_mfe = mfe
-
-        printProgressBar(x+1, l, prefix='Progress:', suffix='Complete', length=50)
-        mfes.append(lowest_mfe)
-    return mfes
-
-
 
 
 

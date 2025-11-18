@@ -19,5 +19,5 @@ source ~/.bashrc
 
 # activate desired conda environment
 conda activate modelenv
-cd '/fast/AG_Ohler/jdemoli/bachelorgit/src'
+cd '/fast/AG_Ohler/jdemoli/bachelorgit/shell_scripts'
 python3 model_unsampled_data.py

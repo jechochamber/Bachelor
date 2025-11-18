@@ -9,31 +9,9 @@ import pickle
 import numpy as np
 import pandas as pd
 import sys
+from src.model_functions import *
 sys.path.append("..")
 from src.KLD_calculation import jsd_loop,markov_matrix
-
-# encoding of data
-def one_hot(seqs):
-    conversion_dict = {
-        'A': np.array([1.0, 0.0, 0.0, 0.0]),
-        'C': np.array([0.0, 1.0, 0.0, 0.0]),
-        'G': np.array([0.0, 0.0, 1.0, 0.0]),
-        'U': np.array([0.0, 0.0, 0.0, 1.0]),
-        'T': np.array([0.0, 0.0, 0.0, 1.0]),
-    }
-    enc_seqs = []
-    for seq in seqs:
-        enc_arr = conversion_dict[seq[0]]
-        for i in seq[1:]:
-            enc_arr = np.vstack((enc_arr, conversion_dict[i]))
-        # enc_arr=enc_arr.T.reshape((1,4,50))
-        enc_arr = torch.tensor(enc_arr.T, dtype=torch.float32)
-        enc_seqs.append(enc_arr)
-    enc_seqs = torch.tensor(np.array(enc_seqs), dtype=torch.float32)
-
-    return enc_seqs
-
-assert torch.cuda.is_available()
 
 # set device
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -97,21 +75,6 @@ net.to(device)
 
 criterion = nn.MSELoss()  # (aL-y)^2
 optimizer = optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999))  # epsilon ist standradmäßig bei 1e-8
-
-
-def earlystopper(val_loss,patience=10,epsilon=1e-7):
-    global es_stopcounter
-    global es_min_loss
-    if patience >= es_stopcounter:
-        if val_loss <= es_min_loss - epsilon:
-            es_min_loss = val_loss
-            es_stopcounter = 0
-        else:
-            es_stopcounter += 1
-        return False
-    else:
-        return True
-
 
 def train_one_epoch(epoch, trainloader, valloader):
     net.train(True)
