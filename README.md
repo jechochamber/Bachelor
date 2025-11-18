@@ -1,1 +1,6 @@
-# Bachelor
+# Investigating properties of natural and random 5'UTRs in silico for a high-throughput mRNA translation assay
+### Abstract
+Protein synthesis underlies all life, and its regulation, particularly during translation, determines how efficiently proteins are produced. The 5'untranslated region (5'UTR) of mRNA is crucial to regulation, influencing translation efficiency through complex structural and sequence-based mechanisms. Despite extensive research, the multifactorial nature of 5'UTR regulation is still an unsolved problem. Recent experiments are using AI as a tool to explore these mechanisms by predicting translational effieciency from sequence data. Models were trained on randomly generated sequences to combat the sparseness of human data. Introducing this human data, however, vastly increased the performance of the model, revealing distinct structural and distributional differences . This project tries to draw closer to these differences by comparing natural and randomly generated 5'UTRs across different attributes that are inferable from the sequence alone subsequently training a convolutional neural network on sampled sequences to assess how sequence composition affects predictive performance, providing new insights into 5'UTR function and translational regulation.
+### Datasets
+datasets 1, 3-8 can be found in new_dataset.csv
+datasets 9-14 are named like the thesis
