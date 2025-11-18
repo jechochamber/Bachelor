@@ -46,8 +46,9 @@ testseqs2=one_hot(list(testset2["utr"]))
 
 #Daten für loop
 sorted_random_seqs=pd.read_csv('../data/JSD_random_seqs.csv')#<-Speicherort
+shuffled_random_seqs=sorted_random_seqs.copy(deep=True).sample(frac=1).reset_index(drop=True)
 human_train_seqs=pd.read_csv('../data/human_train.csv')#<-Speicherort
-full_dataset=pd.concat([sorted_random_seqs,human_train_seqs])
+full_dataset=pd.concat([shuffled_random_seqs,human_train_seqs])
 fullmrl = full_dataset['rl'].values.reshape([-1,1])
 scaler.fit(fullmrl)
 correct_random_mrl=np.array(testset1["rl"])
@@ -197,7 +198,7 @@ for i in np.arange(0, 1.1, 0.1):
             train_one_epoch(epoch, trainloader, valloader)
             epoch += 1
 
-        torch.save(net.state_dict(), f'../models/models_run04/JSD_trained_h{int(i * 100)}.pt')  # <-Speicherort
+        torch.save(net.state_dict(), f'../models/models_run05/JSD_trained_h{int(i * 100)}.pt')  # <-Speicherort
 
         # Getting the outputs of network
         trained_scaled_random_mrl = net(testseqs1.to(device)).cpu().detach().numpy().reshape(-1, )
@@ -219,4 +220,4 @@ for i in np.arange(0, 1.1, 0.1):
 
     r2_ht_plot.append(np.array(r2_ht_set))
     r2_rt_plot.append(np.array(r2_rt_set))
-pickle.dump([r2_ht_plot,r2_rt_plot], open('../models/models_run04/r2_plot_sampled_data.pkl', 'wb'))
+pickle.dump([r2_ht_plot,r2_rt_plot], open('../models/models_run05/r2_plot_unsampled_data.pkl', 'wb'))

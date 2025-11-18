@@ -103,8 +103,12 @@ def jsd(p_matrix: np.ndarray, q_matrix: np.ndarray) -> float:
             m=0.5*(p+q)
             D=lambda a,b : a*np.log(a/b)#kld as a lambda function, to not overwrite the kld function that already exists
             jsd+=0.5*D(p,m)+0.5*D(q,m)
+    try:
+        return np.sqrt(jsd)
+    except:
+        print('following value couldn`t be calculated:', jsd)
+        return np.nan
 
-    return np.sqrt(jsd)
 
 
 def jsd_loop(p_data, p_seq_column, q_matrix, a=1):
@@ -132,8 +136,10 @@ def main_loop(reference_data : pd.DataFrame,q_data : pd.DataFrame ,reference_seq
 
 
 
+
     return kldlist
 
+#WIP
 def distance_calculation(reference_data : pd.DataFrame,q_data : pd.DataFrame ,reference_seq_column : str,q_seq_column : str,seqnum) -> tuple:
     reference_seqs=np.random.choice(np.array(reference_data[reference_seq_column]),seqnum)
     q_seqs=np.array(q_data[q_seq_column])
@@ -145,7 +151,9 @@ def distance_calculation(reference_data : pd.DataFrame,q_data : pd.DataFrame ,re
     for seq in q_seqs:
         random_dist = []
         for second_seq in reference_seqs:
-            random_dist.append(jsd(markov_matrix(seq,a=1)[2],markov_matrix(second_seq,a=1)[2]))
+            jsd_of_seqs=jsd(markov_matrix(seq,a=1)[2],markov_matrix(second_seq,a=1)[2])
+            random_dist.append(jsd_of_seqs)
+
         list_of_dists.append(random_dist)
     return human_dist,list_of_dists
 
@@ -172,9 +180,10 @@ pickle.dump(jsd_list, open("../data/human_jsd.pkl", "wb"))
 jsd_arr=np.array(jsd_list)
 np.save("../data/human_jsd.npy", jsd_arr)
 print("done")
-'''
+
 reference_data=pd.read_csv("../data/human_sample.csv")
 q_data=pd.read_csv("../data/random_train.csv")
-results=distance_calculation(reference_data,q_data,'utr','utr',100)
+results=distance_calculation(reference_data,q_data,'utr','utr',50)
 
 pickle.dump(results, open("../data/human_distance.pkl", "wb"))
+'''

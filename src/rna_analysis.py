@@ -214,11 +214,9 @@ def GC_dinucleotides(seqs):
     return pd.DataFrame(gcchains_df)
 #this may need some reworking
 
-
 def GC_Content(seq):
     """Calculates the GC content of a DNA or RNA sequence"""
     return (seq.count('G')+seq.count('C'))/len(seq)
-
 
 def local_GC_Content(seqs,binnum=10):
     if type(seqs)==pd.DataFrame:
@@ -380,7 +378,7 @@ def markov_matrix(seqs):
         for j in range(len(markov_matrix.T[0])):
             markov_matrix[j, i] = markov_matrix[j, i] / sum_col
 
-    return [P_duplett, P_single, markov_matrix]
+    return P_duplett, P_single, markov_matrix
 
 def get_windows(seq, window_size=100, stride=50):
     seq_string = str(seq)
@@ -417,7 +415,6 @@ def sliding_window_mfe(seqs):
             string = str(win)
             (ss, mfe) = vrna.fold(string)
             mfe = mfe / len(string)
-
             if mfe < lowest_mfe:
                 lowest_mfe = mfe
 

@@ -62,7 +62,7 @@ def get_params(data,group,func=lognormalfunc):
     params, cov_matrix = curve_fit(func, x, y)
     return params
 
-def randomlengthseqs(params,maxlength,seqnum, group_name,func=lognormalfunc, gc_content=0.5, seed=None, BASES=src.constants.RNABASES):
+def randomlengthseqs(params,maxlength,seqnum, group_name,func=lognormalfunc, probabilities=[0.25, 0.25, 0.25, 0.25], seed=None, BASES=src.constants.RNABASES):
     x=np.arange(1,maxlength)
     distribution=func(x,*params)
     distribution=distribution/sum(distribution)
@@ -70,7 +70,7 @@ def randomlengthseqs(params,maxlength,seqnum, group_name,func=lognormalfunc, gc_
     lengths=rng.choice(x, seqnum , p=distribution)
     seqs_raw=[]
     for i in lengths:
-        seqs_raw.append(rng.choice(BASES,size=(1,i),p=get_gcdistribution(gc_content)))
+        seqs_raw.append(rng.choice(BASES,size=(1,i),p=probabilities))
     seperator = ""
     seqs_final = []
     for seq in seqs_raw:
@@ -79,7 +79,7 @@ def randomlengthseqs(params,maxlength,seqnum, group_name,func=lognormalfunc, gc_
     group = np.array([group_name] * seqnum)
     seqs_final = np.vstack((seqs_final, group)).T
     return seqs_final
-def randomlengthseqs_type2(params,maxlength,seqnum, group_name,func=lognormalfunc, probabilities=[0.25, 0.25, 0.25, 0.25], seed=None, BASES=src.constants.RNABASES)
+def randomlengthseqs_type2(params,maxlength,seqnum, group_name,func=lognormalfunc, probabilities=[0.25, 0.25, 0.25, 0.25], seed=None, BASES=src.constants.RNABASES):
     x = np.arange(1, maxlength)
     distribution = func(x, *params)
     distribution = distribution / sum(distribution)

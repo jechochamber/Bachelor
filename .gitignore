@@ -26,12 +26,15 @@ __pycache__
 *.log
 *.sql
 *.sqlite
+.*
+**/.*
 
 # data #
 ########
 *.txt
 *.csv
-.tmp
+*.tmp
+._*
 .DS_Store
 /data
 /.ipynb_checkpoints/
