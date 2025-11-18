@@ -28,7 +28,7 @@ __pycache__
 *.sqlite
 .*
 **/.*
-
+/models
 # data #
 ########
 *.txt
