@@ -43,6 +43,7 @@ def randomseqs_type2(seqnum, seqlength, group_name,probabilities=[0.25, 0.25, 0.
     seqs_final = np.array(seqs_final)
     group = np.array([group_name] * seqnum)
     seqs_final = np.vstack((seqs_final, group)).T
+    return seqs_final
 
 
 

@@ -249,7 +249,7 @@ def local_GC_Content(seqs,binnum=10):
 
 
 def substringcount(ini_str,sub_str):
-    """We have to write this function ourselves because the.count() method for the markov_matrix function because alot of edge cases are not counted"""
+    """We have to write this function ourselves because the.count() method for the markov_matrix function as alot of edge cases are not counted"""
     res = sum([1 for i in range(len(ini_str)-len(sub_str)+1) if ini_str[i:i+len(sub_str)] == sub_str])
 
     return res
@@ -419,7 +419,16 @@ def fast_uORfs(seqs, startcodon):
 
     return counts
 
-
+def nucleotide_probabilities(seqs_df, seq_col='', bases=src.constants.RNABASES):
+    """Per-sequence mononucleotide probabilities P(A), P(C), P(G), P(U), plus GC content.
+    This complements src.rna_analysis.GC_Content, which only returns the combined G+C fraction."""
+    records = []
+    for seq in seqs_df[seq_col]:
+        L = len(seq)
+        records.append({base: seq.count(base) / L for base in bases})
+    probs = pd.DataFrame(records, index=seqs_df.index)
+    probs["GC Content"] = seqs_df[seq_col].apply(GC_Content)
+    return probs
 
 
 
