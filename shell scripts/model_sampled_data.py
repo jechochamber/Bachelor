@@ -128,7 +128,7 @@ for i in np.arange(0, 1.1, 0.1):
     r2_ht_set = []
     for j in range(10):
         net = Model().to(device)
-        net.load_state_dict(torch.load("../models/untrained.pt", weights_only=False))
+        net.load_state_dict(torch.load("../models/params/untrained.pt", weights_only=False))
         optimizer = optim.Adam(net.parameters(), lr=0.001, betas=(0.9, 0.999))  # fresh optimizer
         if i <= 0.0:
             nextstep_dataset = human_train_seqs
@@ -160,7 +160,7 @@ for i in np.arange(0, 1.1, 0.1):
             train_one_epoch(epoch, trainloader, valloader)
             epoch += 1
 
-        torch.save(net.state_dict(), f'../models/models_run04/JSD_trained_h{int(i * 100)}.pt')  # <-Speicherort
+        torch.save(net.state_dict(), f'../models/params/models_run04/JSD_trained_h{int(i * 100)}.pt')  # <-Speicherort
 
         # Getting the outputs of network
         trained_scaled_random_mrl = net(testseqs1.to(device)).cpu().detach().numpy().reshape(-1, )
@@ -182,4 +182,4 @@ for i in np.arange(0, 1.1, 0.1):
 
     r2_ht_plot.append(np.array(r2_ht_set))
     r2_rt_plot.append(np.array(r2_rt_set))
-pickle.dump([r2_ht_plot,r2_rt_plot], open('../models/models_run04/r2_plot_sampled_data.pkl', 'wb'))
+pickle.dump([r2_ht_plot,r2_rt_plot], open('../models/params/models_run04/r2_plot_sampled_data.pkl', 'wb'))
